@@ -100,6 +100,7 @@ func GenerateValuesSchema(ctx context.Context, source string, opts GenerateValue
 			if err := templateValuesFiles(ctx, chart, chartPaths.ValuesDir, templateValuesFilesOpts{
 				variableConfig: variableConfig,
 				pkg:            pkg,
+				component:      component,
 				vals:           packageValues,
 				s:              s,
 				stateAccess:    component.StateAccess,

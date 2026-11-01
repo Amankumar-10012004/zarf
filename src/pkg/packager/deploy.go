@@ -691,6 +691,7 @@ func (d *deployer) installCharts(ctx context.Context, pkgLayout *layout.PackageL
 		if err := templateValuesFiles(ctx, chart, valuesDir, templateValuesFilesOpts{
 			variableConfig: d.vc,
 			pkg:            pkg,
+			component:      component,
 			vals:           d.vals,
 			s:              d.s,
 			stateAccess:    component.StateAccess,
@@ -770,6 +771,7 @@ func (d *deployer) installManifests(ctx context.Context, pkgLayout *layout.Packa
 				l.Debug("start manifest template", "manifest", manifest.Name, "path", path)
 				objs, err := template.NewObjects(d.vals).
 					WithPackage(pkg).
+					WithComponent(pkg, component).
 					WithVariables(d.vc.GetSetVariableMap()).
 					WithConstants(d.vc.GetConstants()).
 					WithState(template.StateAccess{State: d.s, AccessKeys: component.StateAccess})
@@ -1001,6 +1003,7 @@ func (d *deployer) processComponentFiles(ctx context.Context, pkgLayout *layout.
 					l.Debug("templates enabled, processing file", "name", file.Destination)
 					objs, err := template.NewObjects(d.vals).
 						WithPackage(pkg).
+						WithComponent(pkg, component).
 						WithVariables(d.vc.GetSetVariableMap()).
 						WithConstants(d.vc.GetConstants()).
 						WithState(template.StateAccess{State: d.s, AccessKeys: component.StateAccess})

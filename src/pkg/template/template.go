@@ -43,6 +43,7 @@ type Objects map[string]any
 const (
 	objectKeyValues    = "Values"
 	objectKeyPackage   = "Pkg"
+	objectKeyComponent = "Component"
 	objectKeyConstants = "Constants"
 	objectKeyVariables = "Variables"
 	objectKeyState     = "State"
@@ -61,7 +62,7 @@ func (o Objects) WithValues(values value.Values) Objects {
 	return o
 }
 
-// WithConstants takes a slice of api.Constants and unwraps it into the templating Objects map so constants can be
+// WithConstants takes a slice of api.Constant and unwraps it into the templating Objects map so constants can be
 // accessed in templates by their key name.
 func (o Objects) WithConstants(constants []api.Constant) Objects {
 	m := make(map[string]string)
@@ -90,6 +91,17 @@ func (o Objects) WithPackage(pkg api.Package) Objects {
 		o[objectKeyPackage] = convert.PackageToV1alpha1(pkg)
 	case v1beta1.APIVersion:
 		o[objectKeyPackage] = convert.PackageToV1beta1(pkg)
+	}
+	return o
+}
+
+// WithComponent makes the component available on the Objects map using its authored API version.
+func (o Objects) WithComponent(pkg api.Package, component api.Component) Objects {
+	switch pkg.GetAPIVersion() {
+	case v1alpha1.APIVersion:
+		o[objectKeyComponent] = convert.ComponentToV1alpha1(component)
+	case v1beta1.APIVersion:
+		o[objectKeyComponent] = convert.ComponentToV1beta1(component)
 	}
 	return o
 }

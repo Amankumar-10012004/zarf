@@ -91,7 +91,7 @@ the package values or mapped chart values to receive an inferred type constraint
 
 ## Using Values
 
-Values are accessed in templates through the `.Values` template object. See the [Templating](#templating) section for details on the other available template objects (`.State`, `.Pkg`) and functions.
+Values are accessed in templates through the `.Values` template object. See the [Templating](#templating) section for details on the other available template objects (`.State`, `.Pkg`, `.Component`) and functions.
 
 ### In Manifests
 
@@ -346,6 +346,17 @@ The `.Pkg` object gives access to the package definition. See this used in the [
 - `.Pkg.HasImages` returns whether the package includes any images or image archives.
 - `(.Pkg.GetComponent "<component name>").GetImages` returns the component's image references, including those from image archives.
 - `(.Pkg.GetComponent "<component name>").GetImageByID "<image id>"` returns an object with `.Reference`, `.Repository`, `.Tag`, and `.Digest`. Absent tags/digests are empty, and missing/empty image IDs cause a template error. (v1beta1 only)
+  - For `ghcr.io/zarf-dev/agent:1.2.3@sha256:abc…` the `.Reference` is the full input, `.Repository` is `zarf-dev/agent`, `.Tag` is `1.2.3`, and `.Digest` is `sha256:abc…`.
+
+### Component Object (`.Component`)
+
+The `.Component` object provides direct access to the current component being templated without needing `.Pkg.GetComponent "<name>"`. This avoids hardcoding component names, which can change when a component is imported with a different name.
+
+#### Component Functions
+
+- `.Component.Name` returns the name of the current component.
+- `.Component.GetImages` returns the component's image references, including those from image archives.
+- `.Component.GetImageByID "<image id>"` returns an object with `.Reference`, `.Repository`, `.Tag`, and `.Digest`. Absent tags/digests are empty, and missing/empty image IDs cause a template error. (v1beta1 only)
   - For `ghcr.io/zarf-dev/agent:1.2.3@sha256:abc…` the `.Reference` is the full input, `.Repository` is `zarf-dev/agent`, `.Tag` is `1.2.3`, and `.Digest` is `sha256:abc…`.
 
 ### Functions

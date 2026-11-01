@@ -1871,3 +1871,50 @@ func TestRoundTrip_V1Alpha1_To_V1Beta1_And_Back(t *testing.T) {
 	require.NotNil(t, comp.Actions.OnDeploy.Before[0].MaxTotalSeconds)
 	require.Equal(t, 30, *comp.Actions.OnDeploy.Before[0].MaxTotalSeconds)
 }
+
+func TestComponentConversions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("v1alpha1 component round trip", func(t *testing.T) {
+		t.Parallel()
+		orig := v1alpha1.ZarfComponent{
+			Name:        "alpha-comp",
+			Description: "An alpha component",
+			Images:      []string{"nginx:1.23.3"},
+		}
+		generic := ComponentFromV1alpha1(orig)
+		require.Equal(t, orig.Name, generic.Name)
+		require.Equal(t, orig.Description, generic.Description)
+		require.Equal(t, orig.Images, generic.GetImages())
+
+		back := ComponentToV1alpha1(generic)
+		require.Equal(t, orig.Name, back.Name)
+		require.Equal(t, orig.Description, back.Description)
+		require.Equal(t, orig.Images, back.Images)
+	})
+
+	t.Run("v1beta1 component round trip", func(t *testing.T) {
+		t.Parallel()
+		orig := v1beta1.Component{
+			Name:        "beta-comp",
+			Description: "A beta component",
+			ComponentSpec: v1beta1.ComponentSpec{
+				Images: []v1beta1.Image{
+					{ID: "web", Name: "nginx:1.23.3"},
+				},
+			},
+		}
+		generic := ComponentFromV1beta1(orig)
+		require.Equal(t, orig.Name, generic.Name)
+		require.Equal(t, orig.Description, generic.Description)
+		require.Len(t, generic.Images, 1)
+		require.Equal(t, "nginx:1.23.3", generic.Images[0].Name)
+		require.Equal(t, "web", generic.Images[0].ID)
+
+		back := ComponentToV1beta1(generic)
+		require.Equal(t, orig.Name, back.Name)
+		require.Equal(t, orig.Description, back.Description)
+		require.Equal(t, orig.ComponentSpec.Images, back.ComponentSpec.Images)
+	})
+}
+

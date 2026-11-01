@@ -15,6 +15,11 @@ import (
 	"github.com/zarf-dev/zarf/src/pkg/transform"
 )
 
+// ComponentFromV1alpha1 converts a v1alpha1 ZarfComponent to the internal generic representation.
+func ComponentFromV1alpha1(c v1alpha1.ZarfComponent) api.Component {
+	return componentToGeneric(c)
+}
+
 // PackageFromV1alpha1 converts a v1alpha1 ZarfPackage to the internal generic representation.
 func PackageFromV1alpha1(pkg v1alpha1.ZarfPackage) api.Package {
 	// Direct conversions need the same legacy action migration as decoded packages.
@@ -479,6 +484,11 @@ func buildFromGeneric(b api.BuildData) v1alpha1.ZarfBuildData {
 	}
 
 	return out
+}
+
+// ComponentToV1alpha1 converts the internal generic component to a v1alpha1 wire component.
+func ComponentToV1alpha1(c api.Component) v1alpha1.ZarfComponent {
+	return componentFromGeneric(c)
 }
 
 func componentFromGeneric(c api.Component) v1alpha1.ZarfComponent {

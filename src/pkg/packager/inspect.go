@@ -136,6 +136,7 @@ func InspectPackageResources(ctx context.Context, pkgLayout *layout.PackageLayou
 				if err := templateValuesFiles(ctx, chart, valuesDir, templateValuesFilesOpts{
 					variableConfig: variableConfig,
 					pkg:            pkg,
+					component:      component,
 					vals:           vals,
 					s:              s,
 					stateAccess:    component.StateAccess,
@@ -192,6 +193,7 @@ func InspectPackageResources(ctx context.Context, pkgLayout *layout.PackageLayou
 					if manifest.EnableTemplating {
 						objs, err := tmpl.NewObjects(vals).
 							WithPackage(pkg).
+							WithComponent(pkg, component).
 							WithVariables(variableConfig.GetSetVariableMap()).
 							WithConstants(variableConfig.GetConstants()).
 							WithState(tmpl.StateAccess{State: s, AccessKeys: component.StateAccess})
@@ -222,6 +224,7 @@ func InspectPackageResources(ctx context.Context, pkgLayout *layout.PackageLayou
 type templateValuesFilesOpts struct {
 	variableConfig *variables.VariableConfig
 	pkg            api.Package
+	component      api.Component
 	vals           value.Values
 	s              *state.State
 	stateAccess    []api.StateAccessKey
@@ -253,6 +256,7 @@ func templateValuesFiles(ctx context.Context, chart api.Chart, valuesDir string,
 	// Build objs once — inputs don't vary per file and WithState may invoke bcrypt.
 	objs, err := tmpl.NewObjects(opts.vals).
 		WithPackage(opts.pkg).
+		WithComponent(opts.pkg, opts.component).
 		WithVariables(opts.variableConfig.GetSetVariableMap()).
 		WithConstants(opts.variableConfig.GetConstants()).
 		WithState(tmpl.StateAccess{State: opts.s, AccessKeys: opts.stateAccess})
@@ -374,7 +378,7 @@ func InspectDefinitionResources(ctx context.Context, packagePath string, opts In
 		}
 
 		for _, zarfChart := range component.Charts {
-			chartResource, values, err := getTemplatedChart(ctx, zarfChart, component.Name, loaded.Resources, compBuildPath, variableConfig, vals, pkg, s, component.StateAccess, opts.KubeVersion, opts.IsInteractive, opts.CachePath, opts.RemoteOptions)
+			chartResource, values, err := getTemplatedChart(ctx, zarfChart, component, loaded.Resources, compBuildPath, variableConfig, vals, pkg, s, opts.KubeVersion, opts.IsInteractive, opts.CachePath, opts.RemoteOptions)
 			if err != nil {
 				return nil, err
 			}
@@ -398,7 +402,7 @@ func InspectDefinitionResources(ctx context.Context, packagePath string, opts In
 			}
 		}
 		for _, manifest := range component.Manifests {
-			manifestResources, err := getTemplatedManifests(ctx, manifest, loaded.Resources, compBuildPath, variableConfig, vals, pkg, tmpl.StateAccess{State: s, AccessKeys: component.StateAccess}, opts.EnableKustomizePlugins)
+			manifestResources, err := getTemplatedManifests(ctx, manifest, loaded.Resources, compBuildPath, variableConfig, vals, pkg, component, tmpl.StateAccess{State: s, AccessKeys: component.StateAccess}, opts.EnableKustomizePlugins)
 			if err != nil {
 				return nil, err
 			}
@@ -409,7 +413,7 @@ func InspectDefinitionResources(ctx context.Context, packagePath string, opts In
 	return resources, nil
 }
 
-func getTemplatedManifests(ctx context.Context, manifest api.Manifest, resourceSet *load.ResourceSet, baseComponentDir string, variableConfig *variables.VariableConfig, vals value.Values, pkg api.Package, stateAccess tmpl.StateAccess, enableKustomizePlugins bool) (_ []Resource, err error) {
+func getTemplatedManifests(ctx context.Context, manifest api.Manifest, resourceSet *load.ResourceSet, baseComponentDir string, variableConfig *variables.VariableConfig, vals value.Values, pkg api.Package, component api.Component, stateAccess tmpl.StateAccess, enableKustomizePlugins bool) (_ []Resource, err error) {
 	if manifest.Kustomize.EnablePlugins && !enableKustomizePlugins {
 		return nil, fmt.Errorf("manifest %q enables Kustomize plugin which can execute arbitrary commands, this requires explicit opt-in", manifest.Name)
 	}
@@ -441,6 +445,7 @@ func getTemplatedManifests(ctx context.Context, manifest api.Manifest, resourceS
 			// Create template objects with values, metadata, build, constants, and variables
 			objs, err := tmpl.NewObjects(vals).
 				WithPackage(pkg).
+				WithComponent(pkg, component).
 				WithVariables(variableConfig.GetSetVariableMap()).
 				WithConstants(variableConfig.GetConstants()).
 				WithState(stateAccess)
@@ -489,8 +494,8 @@ func getTemplatedManifests(ctx context.Context, manifest api.Manifest, resourceS
 }
 
 // getTemplatedChart returns a templated chart.yaml as a string after templating
-func getTemplatedChart(ctx context.Context, zarfChart api.Chart, componentName string, resources *load.ResourceSet,
-	baseComponentDir string, variableConfig *variables.VariableConfig, vals value.Values, pkg api.Package, s *state.State, stateAccess []api.StateAccessKey, kubeVersion string, isInteractive bool, cachePath string, remoteOptions types.RemoteOptions) (Resource, common.Values, error) {
+func getTemplatedChart(ctx context.Context, zarfChart api.Chart, component api.Component, resources *load.ResourceSet,
+	baseComponentDir string, variableConfig *variables.VariableConfig, vals value.Values, pkg api.Package, s *state.State, kubeVersion string, isInteractive bool, cachePath string, remoteOptions types.RemoteOptions) (Resource, common.Values, error) {
 	chartPath := filepath.Join(baseComponentDir, string(layout.ChartsComponentDir))
 	valuesFilePath := filepath.Join(baseComponentDir, string(layout.ValuesComponentDir))
 	if err := assemble.PackageChart(ctx, zarfChart, resources, layout.ChartPaths{ChartsDir: chartPath, ValuesDir: valuesFilePath}, cachePath, remoteOptions); err != nil {
@@ -498,7 +503,7 @@ func getTemplatedChart(ctx context.Context, zarfChart api.Chart, componentName s
 	}
 
 	// Generate chart overrides using values
-	chartOverrides, err := generateValuesOverrides(ctx, zarfChart, componentName, overrideOpts{
+	chartOverrides, err := generateValuesOverrides(ctx, zarfChart, component.Name, overrideOpts{
 		variableConfig:     variableConfig,
 		values:             vals,
 		valuesOverridesMap: ValuesOverrides{},
@@ -510,9 +515,10 @@ func getTemplatedChart(ctx context.Context, zarfChart api.Chart, componentName s
 	if err := templateValuesFiles(ctx, zarfChart, valuesFilePath, templateValuesFilesOpts{
 		variableConfig: variableConfig,
 		pkg:            pkg,
+		component:      component,
 		vals:           vals,
 		s:              s,
-		stateAccess:    stateAccess,
+		stateAccess:    component.StateAccess,
 	}); err != nil {
 		return Resource{}, common.Values{}, err
 	}

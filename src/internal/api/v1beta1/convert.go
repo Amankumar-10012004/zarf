@@ -12,6 +12,11 @@ import (
 	"github.com/zarf-dev/zarf/src/api/v1beta1"
 )
 
+// ComponentFromV1beta1 converts a v1beta1 Component to the internal generic representation.
+func ComponentFromV1beta1(c v1beta1.Component) api.Component {
+	return componentToGeneric(c)
+}
+
 // PackageFromV1beta1 converts a v1beta1 Package to the internal generic representation.
 func PackageFromV1beta1(pkg v1beta1.Package) api.Package {
 	g := api.Package{
@@ -389,6 +394,11 @@ func buildFromGeneric(b api.BuildData) v1beta1.BuildData {
 	}
 
 	return out
+}
+
+// ComponentToV1beta1 converts the internal generic component to a v1beta1 wire component.
+func ComponentToV1beta1(c api.Component) v1beta1.Component {
+	return componentFromGeneric(c)
 }
 
 func componentFromGeneric(c api.Component) v1beta1.Component {

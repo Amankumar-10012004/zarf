@@ -156,6 +156,64 @@ func TestObjects_WithPackage(t *testing.T) {
 	}
 }
 
+func TestObjects_WithComponent(t *testing.T) {
+	tests := []struct {
+		name         string
+		pkg          api.Package
+		component    api.Component
+		expectedType any
+		tmpl         string
+		expected     string
+	}{
+		{
+			name:         "v1alpha1 component",
+			expectedType: v1alpha1.ZarfComponent{},
+			pkg: convert.PackageFromV1alpha1(v1alpha1.ZarfPackage{
+				APIVersion: v1alpha1.APIVersion,
+				Metadata:   v1alpha1.ZarfMetadata{Name: "test-package"},
+			}),
+			component: convert.ComponentFromV1alpha1(v1alpha1.ZarfComponent{
+				Name: "test-comp",
+				Images: []string{
+					"nginx:1.23.3",
+				},
+			}),
+			tmpl:     "{{ .Component.Name }}|{{ index .Component.GetImages 0 }}",
+			expected: "test-comp|nginx:1.23.3",
+		},
+		{
+			name:         "v1beta1 component",
+			expectedType: v1beta1.Component{},
+			pkg: convert.PackageFromV1beta1(v1beta1.Package{
+				APIVersion: v1beta1.APIVersion,
+				Metadata:   v1beta1.PackageMetadata{Name: "test-package"},
+			}),
+			component: convert.ComponentFromV1beta1(v1beta1.Component{
+				Name: "test-comp",
+				ComponentSpec: v1beta1.ComponentSpec{
+					Images: []v1beta1.Image{
+						{ID: "web", Name: "nginx:1.23.3"},
+					},
+				},
+			}),
+			tmpl:     "{{ .Component.Name }}|{{ (.Component.GetImageByID \"web\").Reference }}|{{ index .Component.GetImages 0 }}",
+			expected: "test-comp|nginx:1.23.3|nginx:1.23.3",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			objects := make(Objects)
+			result := objects.WithComponent(tt.pkg, tt.component)
+			require.IsType(t, tt.expectedType, result[objectKeyComponent])
+
+			output, err := Apply(context.Background(), tt.tmpl, result)
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, output)
+		})
+	}
+}
+
 func TestObjects_WithConstants(t *testing.T) {
 	tests := []struct {
 		name      string

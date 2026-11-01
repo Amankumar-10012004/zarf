@@ -22,6 +22,26 @@ func PackageFromV1beta1(pkg v1beta1.Package) api.Package {
 	return internalv1beta1.PackageFromV1beta1(pkg)
 }
 
+// ComponentFromV1alpha1 converts a v1alpha1 wire component to the normalized model.
+func ComponentFromV1alpha1(c v1alpha1.ZarfComponent) api.Component {
+	return internalv1alpha1.ComponentFromV1alpha1(c)
+}
+
+// ComponentFromV1beta1 converts a v1beta1 wire component to the normalized model.
+func ComponentFromV1beta1(c v1beta1.Component) api.Component {
+	return internalv1beta1.ComponentFromV1beta1(c)
+}
+
+// ComponentToV1alpha1 converts the normalized component model to the v1alpha1 wire component.
+func ComponentToV1alpha1(c api.Component) v1alpha1.ZarfComponent {
+	return internalv1alpha1.ComponentToV1alpha1(c)
+}
+
+// ComponentToV1beta1 converts the normalized component model to the v1beta1 wire component.
+func ComponentToV1beta1(c api.Component) v1beta1.Component {
+	return internalv1beta1.ComponentToV1beta1(c)
+}
+
 // PackageToV1alpha1 converts the normalized model to the v1alpha1 wire package.
 func PackageToV1alpha1(pkg api.Package) v1alpha1.ZarfPackage {
 	return internalv1alpha1.PackageToV1alpha1(pkg)
